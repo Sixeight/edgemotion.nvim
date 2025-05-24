@@ -1,0 +1,121 @@
+*edgemotion.txt*	move to the edge!
+
+Author  : Sixeight <tomohiro68@gmail.com>
+Version : 0.1.0
+License : MIT license {{{
+
+  Copyright (c) 2025 Sixeight
+
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+}}}
+
+==============================================================================
+CONTENTS				*edgemotion-contents*
+
+INTRODUCTION		|edgemotion-introduction|
+SETUP			|edgemotion-setup|
+INTERFACE		|edgemotion-interface|
+	Functions		|edgemotion-functions|
+	Options			|edgemotion-options|
+
+==============================================================================
+INTRODUCTION				*edgemotion-introduction*
+
+*edgemotion.nvim* is like |j|, |k|, but stops at edge only.
+
+This plugin is a lua ported version of edgemotion.vim [1].
+
+edgemotion.nvim provides motions similar to |j| and |k|, but stops only at
+"edges" (boundaries of code blocks). This is a Lua port of the original
+VimScript plugin for Neovim.
+
+[1]: https://github.com/haya14busa/edgemotion.vim
+
+==============================================================================
+SETUP					*edgemotion-setup*
+
+To use edgemotion.nvim, call the Lua setup function:
+
+>
+	require('edgemotion').setup()
+<
+
+Or with custom key mappings:
+
+>
+	require('edgemotion').setup({
+	  forward = '<C-j>',
+	  backward = '<C-k>'
+	})
+<
+
+==============================================================================
+INTERFACE				*edgemotion-interface*
+------------------------------------------------------------------------------
+FUNCTIONS				*edgemotion-functions*
+
+setup({opts})					*edgemotion.setup()*
+	Initialize the plugin and set up key mappings.
+
+	Parameters: ~
+	    {opts} (table|nil) Configuration options |edgemotion-options|
+
+move_forward()					*edgemotion.move_forward()*
+	Move forward (downward) to the next edge.
+
+move_backward()					*edgemotion.move_backward()*
+	Move backward (upward) to the previous edge.
+
+move({direction})				*edgemotion.move()*
+	Return a movement command to move to an edge in the specified direction.
+
+	Parameters: ~
+	    {direction} (number) Direction constant
+	                         (edgemotion.DIRECTION.FORWARD or
+	                          edgemotion.DIRECTION.BACKWARD)
+
+	Return: ~
+	    (string) Movement command (e.g., '3j', '2k')
+
+------------------------------------------------------------------------------
+OPTIONS					*edgemotion-options*
+
+Options available for the setup() function:
+
+forward					*edgemotion-option-forward*
+	Key mapping for forward movement
+	Type: string
+	Default: '<C-j>'
+
+backward				*edgemotion-option-backward*
+	Key mapping for backward movement
+	Type: string
+	Default: '<C-k>'
+
+Example:
+>
+	require('edgemotion').setup({
+	  forward = 'gj',
+	  backward = 'gk'
+	})
+<
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:fdm=marker:

@@ -1,0 +1,77 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly test on Monday at 2 AM
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nvim_version: ['v0.9.5', 'v0.10.2', 'nightly']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Neovim Lua environment
+        uses: notomo/action-setup-nvim-lua@v2
+
+      - name: Install Neovim
+        run: |
+          if [ "${{ matrix.nvim_version }}" = "nightly" ]; then
+            curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+          else
+            curl -LO https://github.com/neovim/neovim/releases/download/${{ matrix.nvim_version }}/nvim-linux64.tar.gz
+          fi
+          tar xzf nvim-linux64.tar.gz
+          echo "$GITHUB_WORKSPACE/nvim-linux64/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run tests
+        run: make test
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.nvim_version }}
+          path: |
+            test/
+            *.log
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Neovim Lua environment
+        uses: notomo/action-setup-nvim-lua@v2
+
+      - name: Install luacheck
+        run: luarocks install luacheck
+
+      - name: Run luacheck
+        run: luacheck lua/ test/
+
+      - name: Install stylua
+        run: |
+          curl -L https://github.com/JohnnyMorganz/StyLua/releases/download/v0.20.0/stylua-linux.zip -o stylua.zip
+          unzip stylua.zip
+          chmod +x stylua
+          sudo mv stylua /usr/local/bin/
+
+      - name: Check formatting with stylua
+        run: |
+          stylua --check lua/
+          stylua --check test/
