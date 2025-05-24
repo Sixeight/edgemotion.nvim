@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        nvim_version: ['v0.9.5', 'v0.10.2', 'nightly']
+        nvim_version: ['v0.10.4', 'v0.11.0', 'nightly']
 
     steps:
       - name: Checkout
@@ -26,12 +26,12 @@ jobs:
       - name: Install Neovim
         run: |
           if [ "${{ matrix.nvim_version }}" = "nightly" ]; then
-            curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+            curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
           else
-            curl -LO https://github.com/neovim/neovim/releases/download/${{ matrix.nvim_version }}/nvim-linux64.tar.gz
+            curl -LO https://github.com/neovim/neovim/releases/download/${{ matrix.nvim_version }}/nvim-linux-x86_64.tar.gz
           fi
-          tar xzf nvim-linux64.tar.gz
-          echo "$GITHUB_WORKSPACE/nvim-linux64/bin" >> $GITHUB_PATH
+          tar xzf nvim-linux-x86_64.tar.gz
+          echo "$GITHUB_WORKSPACE/nvim-linux-x86_64/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: make deps
