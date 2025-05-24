@@ -12,28 +12,7 @@ This plugin is a lua ported version of [Edgemotion](https://github.com/haya14bus
 
 #### Installation
 
-Using Lazy.nvim with default settings:
-
-```lua
-{
-  'Sixeight/edgemotion.nvim',
-  opts = {}, -- This will call setup() with default options
-}
-```
-
-With custom key mappings:
-
-```lua
-{
-  'Sixeight/edgemotion.nvim',
-  opts = {
-    forward = 'gj',
-    backward = 'gk',
-  },
-}
-```
-
-Manual setup (if needed):
+Manual setup
 
 ```lua
 require('edgemotion').setup({
@@ -41,6 +20,9 @@ require('edgemotion').setup({
   backward = '<C-k>', -- default
 })
 ```
+
+##### TODO
+- [ ] Support [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ### Testing
 
