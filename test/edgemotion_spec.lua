@@ -172,4 +172,59 @@ describe('edgemotion', function()
             end)
         end)
     end)
+
+    describe('multibyte character support', function()
+        it('should handle mixed Japanese and ASCII text correctly', function()
+            -- Test with realistic mixed content: Japanese and English code
+            vim.cmd('enew')
+            local lines = {
+                'function getUserName() {',
+                '  const name = "山田太郎";',
+                '  console.log("Hello, " + name);',
+                '}',
+                '',
+                'if (条件) {',
+                '  // 日本語のコメント',
+                '  return "こんにちは";',
+                '}',
+            }
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+            -- Test edge detection from various positions
+            local test_cases = {
+                { line = 1, col = 0, desc = "English function" },
+                { line = 2, col = 2, desc = "line with Japanese string" },
+                { line = 6, col = 0, desc = "Japanese if condition" },
+            }
+
+            for _, test_case in ipairs(test_cases) do
+                vim.api.nvim_win_set_cursor(0, { test_case.line, test_case.col })
+
+                assert.has_no.errors(function()
+                    local forward_cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
+                    local backward_cmd = edgemotion.move(edgemotion.DIRECTION.BACKWARD)
+
+                    assert.is_string(forward_cmd)
+                    assert.is_string(backward_cmd)
+                end)
+            end
+        end)
+
+        it('should correctly detect edges with multibyte characters', function()
+            -- Test that edge detection works properly with Japanese characters
+            vim.cmd('enew')
+            local lines = {
+                'if (条件) {',
+                '    console.log("テスト");',
+                '}',
+            }
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+            vim.api.nvim_win_set_cursor(0, { 1, 0 })
+            local cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
+
+            -- Should generate a valid movement command (not empty)
+            assert.not_equal('', cmd, "Movement command should not be empty with Japanese characters")
+        end)
+    end)
 end)
