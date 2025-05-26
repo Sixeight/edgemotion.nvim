@@ -1,29 +1,13 @@
 local core = require('edgemotion.core')
+local helper = require('test.test_helper')
 
 describe('edgemotion.core', function()
   before_each(function()
-    -- Setup a buffer with test content similar to vimspec
-    vim.cmd('enew')
-    local lines = {
-      '" Line 1',
-      '',
-      'function! s:f() abort',
-      '  if 1',
-      '    " if 1',
-      '    " b',
-      '  elseif 2',
-      '    " elseif 2',
-      '  endif',
-      'endfunction',
-      '',
-      '',
-      '" END',
-    }
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+    helper.setup_test_buffer()
   end)
 
   after_each(function()
-    vim.cmd('bdelete!')
+    helper.cleanup_test_buffer()
   end)
 
   describe('island()', function()
