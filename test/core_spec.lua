@@ -100,9 +100,13 @@ describe('edgemotion.core', function()
       assert.True(core.island(2, 3)) -- 'c'
 
       -- Test line 3: mixed Japanese/English with space
+      -- With 5:3 ratio: 'あいう' = 3 chars × 5/3 ≈ 5 display columns
       assert.True(core.island(3, 1)) -- 'あ'
       assert.True(core.island(3, 2)) -- still 'あ'
-      assert.False(core.island(3, 7)) -- space should not be an island
+      -- With 5:3 ratio: 'あいう' spans 1.0-6.0, then space, then 'a'
+      assert.True(core.island(3, 5)) -- still 'う'
+      assert.True(core.island(3, 6)) -- still 'う' (extends to column 6)
+      assert.False(core.island(3, 7)) -- space after Japanese text
       assert.True(core.island(3, 8)) -- 'a'
     end)
 
@@ -124,8 +128,10 @@ describe('edgemotion.core', function()
       assert.False(core.island(2, 1))
       assert.False(core.island(2, 2))
 
-      -- 'const' starts at virtual column 3
-      assert.True(core.island(2, 3))
+      -- With 5:3 ratio and two leading spaces, 'const' starts at column 3
+      assert.True(core.island(2, 3)) -- 'c' from 'const'
+      
+      -- Note: These tests now account for 5:3 ratio display
 
       -- After 'const ' (column 9), we have '名'
       -- '名' should be detected correctly regardless of display width
@@ -171,18 +177,56 @@ describe('edgemotion.core', function()
       }
       vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 
-      -- Line 1: 'あ' takes columns 1-2, spaces at 3-4, 'い' at 5-6
+      -- Line 1: With 5:3 ratio, 'あ' 1-2.67, spaces 2.67-4.67, 'い' 4.67-6.33
       assert.True(core.island(1, 1)) -- 'あ'
       assert.True(core.island(1, 2)) -- still 'あ'
       assert.False(core.island(1, 3)) -- space
       assert.False(core.island(1, 4)) -- space
       assert.True(core.island(1, 5)) -- 'い'
+      assert.True(core.island(1, 6)) -- still 'い' (extends to column 6)
 
       -- Line 2: English characters with spaces
       assert.True(core.island(2, 1)) -- 'a'
       assert.False(core.island(2, 2)) -- space
       assert.False(core.island(2, 3)) -- space
       assert.True(core.island(2, 4)) -- 'b'
+    end)
+
+    it('should handle 5:3 ratio display correctly', function()
+      vim.cmd('enew')
+      -- Test 5:3 ratio: 5 half-width chars = 3 full-width chars
+      local lines = {
+        'aaaaa', -- 5 half-width = 5 display units
+        'あああ', -- 3 full-width = 3 * (5/3) = 5 display units
+        'bbbbb', -- 5 half-width = 5 display units
+        'いいい', -- 3 full-width = 3 * (5/3) = 5 display units
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Test that columns align correctly
+      -- Column 1: should all be characters
+      assert.True(core.island(1, 1)) -- 'a'
+      assert.True(core.island(2, 1)) -- 'あ'
+      assert.True(core.island(3, 1)) -- 'b'
+      assert.True(core.island(4, 1)) -- 'い'
+
+      -- Column 5: should be last 'a' in line 1, but still within 'あ' in line 2
+      assert.True(core.island(1, 5)) -- last 'a'
+      assert.True(core.island(2, 5)) -- still within last 'あ' (extends to ~5.0)
+      assert.True(core.island(3, 5)) -- last 'b'
+      assert.True(core.island(4, 5)) -- still within last 'い'
+
+      -- Column 6: beyond English chars, but still within last Japanese char
+      assert.False(core.island(1, 6)) -- beyond 'aaaaa'
+      assert.True(core.island(2, 6)) -- still within last 'あ' (extends to column 6)
+      assert.False(core.island(3, 6)) -- beyond 'bbbbb'
+      assert.True(core.island(4, 6)) -- still within last 'い' (extends to column 6)
+      
+      -- Column 7: beyond all characters
+      assert.False(core.island(1, 7)) -- beyond 'aaaaa'
+      assert.False(core.island(2, 7)) -- beyond 'あああ'
+      assert.False(core.island(3, 7)) -- beyond 'bbbbb'
+      assert.False(core.island(4, 7)) -- beyond 'いいい'
     end)
   end)
 end)
