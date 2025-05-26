@@ -54,16 +54,14 @@ function core.island(lnum, vcol)
     return false
   end
 
+  -- Non-whitespace characters are always islands
   if not is_white(c) then
     return true
   end
 
-  -- Check surrounding characters for island detection
-  local prev_char = get_virtcol_char(lnum, vcol - 1)
-  local next_char = get_virtcol_char(lnum, vcol + 1)
-
-  -- If both surrounding characters are non-whitespace, we're in an island
-  return not is_white(prev_char) and not is_white(next_char)
+  -- Whitespace is never an island
+  -- The original edgemotion behavior treats whitespace as boundaries, not islands
+  return false
 end
 
 -- Expose for testing

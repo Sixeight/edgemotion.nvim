@@ -81,12 +81,12 @@ function edgemotion.setup(opts)
   vim.keymap.set('n', opts.forward, edgemotion.move_forward, {
     noremap = true,
     silent = true,
-    desc = 'Edgemotion: Move forward to next edge'
+    desc = 'Edgemotion: Move forward to next edge',
   })
   vim.keymap.set('n', opts.backward, edgemotion.move_backward, {
     noremap = true,
     silent = true,
-    desc = 'Edgemotion: Move backward to previous edge'
+    desc = 'Edgemotion: Move backward to previous edge',
   })
 end
 

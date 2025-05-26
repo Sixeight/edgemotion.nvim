@@ -89,4 +89,116 @@ describe('edgemotion.core', function()
       assert.False(core.island(1, 1000))
     end)
   end)
+
+  describe('Japanese/English mixed text', function()
+    it('should correctly handle full-width Japanese characters', function()
+      vim.cmd('enew')
+      -- Test case: Japanese characters take up more visual space
+      -- Full-width "あ" takes 2 display columns, half-width "a" takes 1
+      local lines = {
+        'あいうえお', -- 5 Japanese characters = 10 display columns
+        'abcde', -- 5 English characters = 5 display columns
+        'あいう abc', -- Mixed: 3 Japanese (6 cols) + space + 3 English (3 cols) = 10 cols
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Test line 1: pure Japanese
+      -- Virtual column 1 should be on 'あ'
+      assert.True(core.island(1, 1))
+      -- Virtual column 2 should still be on 'あ' (since it takes 2 display columns)
+      assert.True(core.island(1, 2))
+      -- Virtual column 3 should be on 'い'
+      assert.True(core.island(1, 3))
+
+      -- Test line 2: pure English
+      assert.True(core.island(2, 1)) -- 'a'
+      assert.True(core.island(2, 2)) -- 'b'
+      assert.True(core.island(2, 3)) -- 'c'
+
+      -- Test line 3: mixed Japanese/English with space
+      assert.True(core.island(3, 1)) -- 'あ'
+      assert.True(core.island(3, 2)) -- still 'あ'
+      assert.False(core.island(3, 7)) -- space should not be an island
+      assert.True(core.island(3, 8)) -- 'a'
+    end)
+
+    it('should handle edge detection with 3:5 ratio display', function()
+      vim.cmd('enew')
+      -- Test case specifically for fonts where full-width:half-width = 3:5
+      local lines = {
+        'function test() {', -- English text
+        '  const 名前 = "田中";', -- Mixed with Japanese variable name
+        '  // 日本語のコメント', -- Japanese comment
+        '  return 名前;', -- Mixed return statement
+        '}',
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Test edge detection at specific virtual columns
+      -- Line 2: "  const 名前 = "田中";"
+      -- The spaces at the beginning should not be islands
+      assert.False(core.island(2, 1))
+      assert.False(core.island(2, 2))
+
+      -- 'const' starts at virtual column 3
+      assert.True(core.island(2, 3))
+
+      -- After 'const ' (column 9), we have '名'
+      -- '名' should be detected correctly regardless of display width
+      assert.True(core.island(2, 9))
+
+      -- Line 3: "  // 日本語のコメント"
+      -- Comment with Japanese text
+      assert.False(core.island(3, 1)) -- space
+      assert.False(core.island(3, 2)) -- space
+      assert.True(core.island(3, 3)) -- '/'
+      assert.True(core.island(3, 4)) -- '/'
+      assert.False(core.island(3, 5)) -- space after '//'
+      assert.True(core.island(3, 6)) -- '日' starts here
+    end)
+
+    it('should detect edges correctly between Japanese and English blocks', function()
+      vim.cmd('enew')
+      -- Test edge transitions between Japanese and English text blocks
+      local lines = {
+        '日本語テキスト', -- Japanese text block
+        '', -- empty line (edge)
+        'English text block', -- English text block
+        '', -- empty line (edge)
+        'ミックスされた mixed text', -- Mixed text block
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Verify edges are detected at empty lines
+      assert.True(core.island(1, 1)) -- Japanese text is an island
+      assert.False(core.island(2, 1)) -- Empty line is not an island
+      assert.True(core.island(3, 1)) -- English text is an island
+      assert.False(core.island(4, 1)) -- Empty line is not an island
+      assert.True(core.island(5, 1)) -- Mixed text is an island
+    end)
+
+    it('should handle whitespace correctly in mixed width environments', function()
+      vim.cmd('enew')
+      -- Test whitespace handling with full/half width characters
+      local lines = {
+        'あ  い', -- Japanese with 2 spaces in between
+        'a  b', -- English with 2 spaces in between
+        'あ a い', -- Mixed with single spaces
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Line 1: 'あ' takes columns 1-2, spaces at 3-4, 'い' at 5-6
+      assert.True(core.island(1, 1)) -- 'あ'
+      assert.True(core.island(1, 2)) -- still 'あ'
+      assert.False(core.island(1, 3)) -- space
+      assert.False(core.island(1, 4)) -- space
+      assert.True(core.island(1, 5)) -- 'い'
+
+      -- Line 2: English characters with spaces
+      assert.True(core.island(2, 1)) -- 'a'
+      assert.False(core.island(2, 2)) -- space
+      assert.False(core.island(2, 3)) -- space
+      assert.True(core.island(2, 4)) -- 'b'
+    end)
+  end)
 end)
