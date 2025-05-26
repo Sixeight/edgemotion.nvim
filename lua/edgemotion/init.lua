@@ -15,37 +15,6 @@ local DEFAULT_OPTS = {
 -- Import core logic
 local core = require('edgemotion.core')
 
--- Calculate display column for 5:3 ratio fonts
-local function get_display_col()
-  local line = vim.fn.getline('.')
-  local col = vim.fn.col('.') - 1  -- 0-based byte position
-  
-  if col == 0 then
-    return 1
-  end
-  
-  local display_col = 1.0
-  local byte_pos = 0
-  
-  while byte_pos < col do
-    local char = vim.fn.strpart(line, byte_pos, 1, true)
-    local char_len = vim.fn.strlen(char)
-    local char_width = vim.fn.strwidth(char)
-    
-    if char_width == 2 then
-      -- Full-width character (5/3 display units)
-      display_col = display_col + (5.0 / 3.0)
-    else
-      -- Half-width character (1 display unit)
-      display_col = display_col + 1.0
-    end
-    
-    byte_pos = byte_pos + char_len
-  end
-  
-  return math.floor(display_col)
-end
-
 -- Move forward
 function edgemotion.move_forward()
   local cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
@@ -71,8 +40,7 @@ function edgemotion.move(dir)
     vim.fn.winrestview({ curswant = #vim.fn.getline('.') - 1 })
   end
 
-  -- Use our custom display column calculation for 5:3 ratio
-  local vcol = get_display_col()
+  local vcol = vim.fn.virtcol('.')
   local orig_lnum = vim.fn.line('.')
 
   local island_start = core.island(orig_lnum, vcol)
