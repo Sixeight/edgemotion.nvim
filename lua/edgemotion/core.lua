@@ -39,8 +39,33 @@ end
 -- Check if position is in an island (code block)
 function core.island(lnum, vcol)
   local c = get_virtcol_char(lnum, vcol)
-  -- Empty or whitespace = not an island
-  return c ~= '' and c:match('^[ \t]$') == nil
+
+  -- Empty position = not an island
+  if c == '' then
+    return false
+  end
+
+  -- Non-whitespace = island
+  if c:match('^[ \t]$') == nil then
+    return true
+  end
+
+  -- Whitespace surrounded by non-whitespace = island
+  -- (Original vim-edgemotion behavior)
+  local prev_c = get_virtcol_char(lnum, vcol - 1)
+  local next_c = get_virtcol_char(lnum, vcol + 1)
+
+  if
+    prev_c ~= ''
+    and prev_c:match('^[ \t]$') == nil
+    and next_c ~= ''
+    and next_c:match('^[ \t]$') == nil
+  then
+    return true
+  end
+
+  -- Otherwise, whitespace = not an island
+  return false
 end
 
 -- Expose for testing

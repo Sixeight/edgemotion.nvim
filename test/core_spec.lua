@@ -107,7 +107,7 @@ describe('edgemotion.core', function()
       assert.True(core.island(3, 4)) -- still 'い'
       assert.True(core.island(3, 5)) -- 'う'
       assert.True(core.island(3, 6)) -- still 'う'
-      assert.False(core.island(3, 7)) -- space after Japanese text
+      assert.True(core.island(3, 7)) -- space between Japanese and English text (surrounded by non-whitespace)
       assert.True(core.island(3, 8)) -- 'a'
     end)
 
@@ -131,7 +131,7 @@ describe('edgemotion.core', function()
 
       -- 'const' starts at column 3
       assert.True(core.island(2, 3)) -- 'c' from 'const'
-      
+
       -- After 'const ' (column 9), we have '名'
       -- '名' should be detected correctly
       assert.True(core.island(2, 9))
@@ -142,7 +142,7 @@ describe('edgemotion.core', function()
       assert.False(core.island(3, 2)) -- space
       assert.True(core.island(3, 3)) -- '/'
       assert.True(core.island(3, 4)) -- '/'
-      assert.False(core.island(3, 5)) -- space after '//'
+      assert.True(core.island(3, 5)) -- space between '//' and Japanese text (surrounded by non-whitespace)
       assert.True(core.island(3, 6)) -- '日' starts here
     end)
 
@@ -220,7 +220,7 @@ describe('edgemotion.core', function()
       assert.True(core.island(2, 6)) -- still within last 'あ'
       assert.False(core.island(3, 6)) -- beyond 'bbbbb'
       assert.True(core.island(4, 6)) -- still within last 'い'
-      
+
       -- Column 7: beyond all characters
       assert.False(core.island(1, 7)) -- beyond 'aaaaa'
       assert.False(core.island(2, 7)) -- beyond 'あああ'

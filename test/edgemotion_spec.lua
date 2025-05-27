@@ -209,5 +209,67 @@ describe('edgemotion', function()
       -- Should generate a valid movement command (not empty)
       assert.not_equal('', cmd, 'Movement command should not be empty with Japanese characters')
     end)
+
+    it('should skip over lines with only indentation', function()
+      -- Reproduce issue: cursor should skip from line with code to next line with code,
+      -- skipping over lines that contain only indentation
+      vim.cmd('enew')
+      local lines = {
+        '    if (condition) {', -- Line 1: code with indentation
+        '        ', -- Line 2: only indentation (spaces)
+        '        ', -- Line 3: only indentation (spaces)
+        '        ', -- Line 4: only indentation (spaces)
+        '    }', -- Line 5: code with closing brace
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Start at line 1, column 5 (where 'i' in 'if' is located)
+      -- Note: nvim_win_set_cursor uses 0-based column index
+      vim.api.nvim_win_set_cursor(0, { 1, 4 })
+
+      -- Execute forward movement
+      edgemotion.move_forward()
+
+      -- Get current cursor position
+      local cursor = vim.api.nvim_win_get_cursor(0)
+
+      -- Should have moved to line 5 (closing brace), not line 3
+      assert.are.equal(5, cursor[1], 'Cursor should skip to line 5, not stop at line 3')
+    end)
+
+    it('should handle realistic code structure like in the issue', function()
+      -- Reproduce the exact issue from the screenshot
+      vim.cmd('enew')
+      local lines = {
+        '\t\tconfig := server.Config{', -- Line 1
+        '\t\t\tHost: hostname,', -- Line 2
+        '\t\t\tPort: port.Number(),', -- Line 3
+        '\t\t\tTimeout: duration,', -- Line 4
+        '\t\t}.Create()', -- Line 5
+        '\t\tif _, err := client.Connect(ctx, config); err != nil {', -- Line 6
+        '\t\t\tt.Errorf("ConnectionFailed")', -- Line 7
+        '\t\t}', -- Line 8
+      }
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+      -- Set tab settings
+      vim.bo.tabstop = 4
+      vim.bo.shiftwidth = 4
+
+      -- Start at line 1, at the beginning of the code (after tabs)
+      -- Position cursor at first non-whitespace character
+      vim.fn.cursor(1, 1)
+      vim.cmd('normal! ^')
+
+      -- Execute forward movement
+      edgemotion.move_forward()
+
+      -- Get current cursor position
+      local cursor = vim.api.nvim_win_get_cursor(0)
+
+      -- With the surrounded whitespace rule, the algorithm continues through all lines
+      -- that have content at the same virtual column, stopping at line 7
+      assert.are.equal(7, cursor[1], 'Cursor should move to line 7 where the island ends')
+    end)
   end)
 end)
