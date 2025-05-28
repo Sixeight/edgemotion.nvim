@@ -20,28 +20,36 @@ describe('edgemotion', function()
   end)
 
   describe('move()', function()
-    it('should return movement command for forward direction', function()
-      -- Start at line 1, column 1
-      vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    it('should return appropriate movement commands', function()
+      -- Test cases for different movement scenarios
+      local test_cases = {
+        {
+          name = 'forward from start',
+          cursor = { 1, 0 },
+          direction = edgemotion.DIRECTION.FORWARD,
+          expect_string = true,
+        },
+        {
+          name = 'backward from middle',
+          cursor = { 5, 0 },
+          direction = edgemotion.DIRECTION.BACKWARD,
+          expect_string = true,
+        },
+        {
+          name = 'at specific column',
+          cursor = { 2, 4 },
+          direction = edgemotion.DIRECTION.FORWARD,
+          expect_string = true,
+        },
+      }
 
-      local cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
+      for _, tc in ipairs(test_cases) do
+        vim.api.nvim_win_set_cursor(0, tc.cursor)
+        local cmd = edgemotion.move(tc.direction)
+        assert.is_string(cmd, 'Failed for: ' .. tc.name)
+      end
 
-      -- Should return a string (could be empty if no edge found)
-      assert.is_string(cmd)
-    end)
-
-    it('should return movement command for backward direction', function()
-      -- Start at line 5
-      vim.api.nvim_win_set_cursor(0, { 5, 0 })
-
-      local cmd = edgemotion.move(edgemotion.DIRECTION.BACKWARD)
-
-      -- Should return a string (could be empty if no edge found)
-      assert.is_string(cmd)
-    end)
-
-    it('should return empty string when no edge found', function()
-      -- Create a buffer with uniform content (no edges)
+      -- Test no edge found scenario
       vim.cmd('enew')
       local uniform_lines = {
         'line one',
@@ -55,16 +63,6 @@ describe('edgemotion', function()
       -- From first line, trying to go backward should return empty
       local cmd = edgemotion.move(edgemotion.DIRECTION.BACKWARD)
       assert.are.equal('', cmd)
-    end)
-
-    it('should handle cursor at virtual column correctly', function()
-      -- Position cursor at specific column
-      vim.api.nvim_win_set_cursor(0, { 2, 4 }) -- line 2, column 5 (0-indexed)
-
-      local cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
-
-      -- Should return a string (could be empty if no edge found)
-      assert.is_string(cmd)
     end)
   end)
 
@@ -89,32 +87,33 @@ describe('edgemotion', function()
   end)
 
   describe('setup()', function()
-    it('should setup with default options', function()
-      assert.has_no.errors(function()
-        edgemotion.setup()
-      end)
-    end)
-
-    it('should setup with custom options', function()
-      local opts = {
-        forward = '<C-n>',
-        backward = '<C-p>',
+    it('should handle various setup configurations', function()
+      local test_cases = {
+        {
+          name = 'default options',
+          opts = nil,
+        },
+        {
+          name = 'custom key mappings',
+          opts = {
+            forward = '<C-n>',
+            backward = '<C-p>',
+          },
+        },
+        {
+          name = 'partial options (merge with defaults)',
+          opts = {
+            forward = '<C-n>',
+            -- backward not specified, should use default
+          },
+        },
       }
 
-      assert.has_no.errors(function()
-        edgemotion.setup(opts)
-      end)
-    end)
-
-    it('should merge custom options with defaults', function()
-      local opts = {
-        forward = '<C-n>',
-        -- backward not specified, should use default
-      }
-
-      assert.has_no.errors(function()
-        edgemotion.setup(opts)
-      end)
+      for _, tc in ipairs(test_cases) do
+        assert.has_no.errors(function()
+          edgemotion.setup(tc.opts)
+        end, 'Failed for: ' .. tc.name)
+      end
     end)
   end)
 
@@ -157,8 +156,8 @@ describe('edgemotion', function()
   end)
 
   describe('multibyte character support', function()
-    it('should handle mixed Japanese and ASCII text correctly', function()
-      -- Test with realistic mixed content: Japanese and English code
+    it('should handle navigation with mixed Japanese and ASCII text', function()
+      -- Test comprehensive mixed content navigation
       vim.cmd('enew')
       local lines = {
         'function getUserName() {',
@@ -191,22 +190,10 @@ describe('edgemotion', function()
           assert.is_string(backward_cmd)
         end)
       end
-    end)
 
-    it('should correctly detect edges with multibyte characters', function()
-      -- Test that edge detection works properly with Japanese characters
-      vim.cmd('enew')
-      local lines = {
-        'if (条件) {',
-        '    console.log("テスト");',
-        '}',
-      }
-      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-
-      vim.api.nvim_win_set_cursor(0, { 1, 0 })
+      -- Test specific edge case with Japanese characters
+      vim.api.nvim_win_set_cursor(0, { 6, 0 }) -- Line with 'if (条件) {'
       local cmd = edgemotion.move(edgemotion.DIRECTION.FORWARD)
-
-      -- Should generate a valid movement command (not empty)
       assert.not_equal('', cmd, 'Movement command should not be empty with Japanese characters')
     end)
 

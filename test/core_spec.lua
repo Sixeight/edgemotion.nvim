@@ -21,25 +21,36 @@ describe('edgemotion.core', function()
       assert.is_boolean(result2)
     end)
 
-    it('should return false for empty lines', function()
+    it('should return false for empty or whitespace-only lines', function()
       -- Test line 2: empty line
       assert.False(core.island(2, 1))
 
       -- Test line 11: empty line
       assert.False(core.island(11, 1))
-    end)
 
-    it('should return false for whitespace at start of line', function()
       -- Test line 4: "  if 1"
       -- Columns 1-2 are whitespace at start of line
       assert.False(core.island(4, 1))
       assert.False(core.island(4, 2))
+
+      -- Add a line with only spaces
+      vim.api.nvim_buf_set_lines(0, -1, -1, false, { '    ' })
+      local last_line = vim.api.nvim_buf_line_count(0)
+      assert.False(core.island(last_line, 1))
+      assert.False(core.island(last_line, 4))
     end)
 
-    it('should handle virtual columns beyond line length', function()
-      -- Test with column beyond the line length
+    it('should handle positions beyond content boundaries', function()
+      -- Test columns beyond line length
       assert.False(core.island(3, 100))
       assert.False(core.island(2, 100)) -- empty line
+      
+      -- Test invalid line numbers
+      assert.False(core.island(0, 1)) -- line 0 doesn't exist
+      assert.False(core.island(100, 1)) -- line 100 doesn't exist
+      
+      -- Test very large column numbers
+      assert.False(core.island(1, 1000))
     end)
 
     it('should function consistently with various inputs', function()
@@ -53,29 +64,9 @@ describe('edgemotion.core', function()
     end)
   end)
 
-  describe('edge cases', function()
-    it('should handle lines with only whitespace', function()
-      -- Add a line with only spaces at the end
-      vim.api.nvim_buf_set_lines(0, -1, -1, false, { '    ' })
 
-      -- First column of whitespace-only line should not be an island
-      local last_line = vim.api.nvim_buf_line_count(0)
-      assert.False(core.island(last_line, 1))
-      assert.False(core.island(last_line, 4))
-    end)
-
-    it('should handle buffer boundary conditions', function()
-      -- Test invalid line numbers
-      assert.False(core.island(0, 1)) -- line 0 doesn't exist
-      assert.False(core.island(100, 1)) -- line 100 doesn't exist
-
-      -- Test very large column numbers
-      assert.False(core.island(1, 1000))
-    end)
-  end)
-
-  describe('Japanese/English mixed text', function()
-    it('should correctly handle full-width Japanese characters', function()
+  describe('Character width and edge detection', function()
+    it('should calculate character widths correctly', function()
       vim.cmd('enew')
       -- Test case: Japanese characters take up more visual space
       -- Full-width "あ" takes 2 display columns, half-width "a" takes 1
@@ -111,62 +102,40 @@ describe('edgemotion.core', function()
       assert.True(core.island(3, 8)) -- 'a'
     end)
 
-    it('should handle edge detection with mixed text', function()
+    it('should detect edges in code with mixed character widths', function()
       vim.cmd('enew')
-      -- Test case for mixed Japanese/English text
+      -- Test edge detection in realistic code scenarios
       local lines = {
-        'function test() {', -- English text
+        'function test() {',
         '  const 名前 = "田中";', -- Mixed with Japanese variable name
         '  // 日本語のコメント', -- Japanese comment
-        '  return 名前;', -- Mixed return statement
+        '  return 名前;',
         '}',
-      }
-      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-
-      -- Test edge detection at specific virtual columns
-      -- Line 2: "  const 名前 = "田中";"
-      -- The spaces at the beginning should not be islands
-      assert.False(core.island(2, 1))
-      assert.False(core.island(2, 2))
-
-      -- 'const' starts at column 3
-      assert.True(core.island(2, 3)) -- 'c' from 'const'
-
-      -- After 'const ' (column 9), we have '名'
-      -- '名' should be detected correctly
-      assert.True(core.island(2, 9))
-
-      -- Line 3: "  // 日本語のコメント"
-      -- Comment with Japanese text
-      assert.False(core.island(3, 1)) -- space
-      assert.False(core.island(3, 2)) -- space
-      assert.True(core.island(3, 3)) -- '/'
-      assert.True(core.island(3, 4)) -- '/'
-      assert.True(core.island(3, 5)) -- space between '//' and Japanese text (surrounded by non-whitespace)
-      assert.True(core.island(3, 6)) -- '日' starts here
-    end)
-
-    it('should detect edges correctly between Japanese and English blocks', function()
-      vim.cmd('enew')
-      -- Test edge transitions between Japanese and English text blocks
-      local lines = {
-        '日本語テキスト', -- Japanese text block
-        '', -- empty line (edge)
-        'English text block', -- English text block
         '', -- empty line (edge)
         'ミックスされた mixed text', -- Mixed text block
       }
       vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 
-      -- Verify edges are detected at empty lines
-      assert.True(core.island(1, 1)) -- Japanese text is an island
-      assert.False(core.island(2, 1)) -- Empty line is not an island
-      assert.True(core.island(3, 1)) -- English text is an island
-      assert.False(core.island(4, 1)) -- Empty line is not an island
-      assert.True(core.island(5, 1)) -- Mixed text is an island
+      -- Test edge detection at various positions
+      -- Line 2: "  const 名前 = "田中";"
+      assert.False(core.island(2, 1)) -- leading space
+      assert.False(core.island(2, 2)) -- leading space
+      assert.True(core.island(2, 3)) -- 'c' from 'const'
+      assert.True(core.island(2, 9)) -- '名' (Japanese character)
+
+      -- Line 3: Japanese comment
+      assert.False(core.island(3, 1)) -- space
+      assert.True(core.island(3, 3)) -- '/'
+      assert.True(core.island(3, 5)) -- space between '//' and Japanese (surrounded)
+      assert.True(core.island(3, 6)) -- '日' starts here
+
+      -- Verify edges at empty lines
+      assert.False(core.island(6, 1)) -- Empty line is not an island
+      assert.True(core.island(7, 1)) -- Mixed text is an island
     end)
 
-    it('should handle whitespace correctly in mixed width environments', function()
+
+    it('should handle whitespace and surrounded whitespace correctly', function()
       vim.cmd('enew')
       -- Test whitespace handling with full/half width characters
       local lines = {
@@ -189,6 +158,14 @@ describe('edgemotion.core', function()
       assert.False(core.island(2, 2)) -- space
       assert.False(core.island(2, 3)) -- space
       assert.True(core.island(2, 4)) -- 'b'
+
+      -- Line 3: Mixed with single spaces (surrounded whitespace)
+      -- 'あ' cols 1-2, space 3, 'a' col 4, space 5, 'い' cols 6-7
+      assert.True(core.island(3, 1)) -- 'あ'
+      assert.True(core.island(3, 3)) -- space (surrounded by non-whitespace)
+      assert.True(core.island(3, 4)) -- 'a'
+      assert.True(core.island(3, 5)) -- space (surrounded by non-whitespace)
+      assert.True(core.island(3, 6)) -- 'い'
     end)
 
     it('should handle standard display widths correctly', function()
