@@ -44,11 +44,11 @@ describe('edgemotion.core', function()
       -- Test columns beyond line length
       assert.False(core.island(3, 100))
       assert.False(core.island(2, 100)) -- empty line
-      
+
       -- Test invalid line numbers
       assert.False(core.island(0, 1)) -- line 0 doesn't exist
       assert.False(core.island(100, 1)) -- line 100 doesn't exist
-      
+
       -- Test very large column numbers
       assert.False(core.island(1, 1000))
     end)
@@ -63,7 +63,6 @@ describe('edgemotion.core', function()
       end
     end)
   end)
-
 
   describe('Character width and edge detection', function()
     it('should calculate character widths correctly', function()
@@ -133,7 +132,6 @@ describe('edgemotion.core', function()
       assert.False(core.island(6, 1)) -- Empty line is not an island
       assert.True(core.island(7, 1)) -- Mixed text is an island
     end)
-
 
     it('should handle whitespace and surrounded whitespace correctly', function()
       vim.cmd('enew')

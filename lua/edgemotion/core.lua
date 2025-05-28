@@ -11,13 +11,21 @@ local function get_virtcol_char(lnum, vcol)
     return ''
   end
 
-  -- Use standard vim virtual column handling
+  -- Use proper vim virtual column handling with tab expansion
   local current_vcol = 1
   local byte_pos = 1
 
   while byte_pos <= #line do
     local char = vim.fn.strpart(line, byte_pos - 1, 1, true)
-    local char_width = vim.fn.strwidth(char)
+    local char_width
+
+    -- Handle tab expansion properly
+    if char == '\t' then
+      local tabstop = vim.bo.tabstop or 8
+      char_width = tabstop - ((current_vcol - 1) % tabstop)
+    else
+      char_width = vim.fn.strwidth(char)
+    end
 
     -- Check if we're at the target column
     if current_vcol <= vcol and vcol < current_vcol + char_width then

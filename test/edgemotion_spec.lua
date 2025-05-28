@@ -254,9 +254,9 @@ describe('edgemotion', function()
       -- Get current cursor position
       local cursor = vim.api.nvim_win_get_cursor(0)
 
-      -- With the surrounded whitespace rule, the algorithm continues through all lines
-      -- that have content at the same virtual column, stopping at line 7
-      assert.are.equal(7, cursor[1], 'Cursor should move to line 7 where the island ends')
+      -- The algorithm finds that line 2-4 have tabs (not islands) at the cursor column,
+      -- so it moves to line 5 where the next island is found
+      assert.are.equal(5, cursor[1], 'Cursor should move to line 5 where the next island starts')
     end)
   end)
 end)
